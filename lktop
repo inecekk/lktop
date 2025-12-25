@@ -1,93 +1,109 @@
 #!/bin/bash
-# lktop - Version 4.3.0 (9 Docker + 22 Processes Alignment)
+# lktop - Version 4.7.0 (Layout Restructured & Bilingual)
 
-# --- 1. 样式与颜色 ---
+# --- 颜色与样式 ---
 B="\033[1m" D="\033[0;90m" W="\033[1;37m" G="\033[32m" Y="\033[33m" R="\033[31m" RES="\033[0m"
 C1="${B}\033[38;5;196m" C2="${B}\033[38;5;208m" C3="${B}\033[38;5;226m" C4="${B}\033[38;5;118m" C5="${B}\033[38;5;81m"
 
-# --- 2. 核心算法 ---
-fmt_time_full() {
-    local s=${1:-0}
-    local y=$((s/31536000)) mn=$(( (s%31536000)/2592000 )) d=$(( (s%2592000)/86400 ))
-    local h=$(( (s%86400)/3600 )) m=$(( (s%3600)/60 )) sec=$(( s%60 ))
-    local res=""
-    [ $y -gt 0 ] && res+="${y}年"
-    [ $mn -gt 0 ] && res+="${mn}月"
-    [ $d -gt 0 ] && res+="${d}天 "
-    printf "%s%02d:%02d:%02d" "$res" "$h" "$m" "$sec"
+# --- 工具函数 ---
+fmt_mem() {
+    local kb=${1:-0}
+    if (( kb < 1048576 )); then
+        awk "BEGIN {printf \"%8.1f MB\", $kb/1024}"
+    else
+        awk "BEGIN {printf \"%8.2f GB\", $kb/1048576}"
+    fi
 }
 
 draw_bar() {
-    local val=${1%.*}
-    [ $val -gt 100 ] && val=100; [ $val -lt 0 ] && val=0
-    local width=15 color=$G; [ $val -gt 50 ] && color=$Y; [ $val -gt 85 ] && color=$R
-    local filled=$(( val * width / 100 )); local empty=$(( width - filled ))
-    printf "${D}[${RES}${color}%s${D}%s]${RES}" "$(printf '■%.0s' $(seq 1 $filled 2>/dev/null))" "$(printf '·%.0s' $(seq 1 $empty 2>/dev/null))"
+    local val=$1; local int_val=${val%.*}
+    int_val=${int_val:-0}
+    local w=15 color=$G
+    [ "$int_val" -gt 50 ] && color=$Y
+    [ "$int_val" -gt 85 ] && color=$R
+    local f=$(( int_val * w / 100 )); local e=$(( w - f ))
+    printf "${D}[${RES}${color}%s${D}%s]${RES}" "$(printf '■%.0s' $(seq 1 $f 2>/dev/null))" "$(printf '·%.0s' $(seq 1 $e 2>/dev/null))"
 }
 
 get_metrics() {
-    local stat1=$(grep '^cpu ' /proc/stat)
-    sleep 0.2
-    local stat2=$(grep '^cpu ' /proc/stat)
-    CPU_USAGE=$(echo "$stat1 $stat2" | awk '{
-        for(i=2;i<=11;i++) { t1+=$i; if(i<=4) u1+=$i }
-        for(i=13;i<=22;i++) { t2+=$i; if(i<=15) u2+=$i }
-        usage = (u2-u1)*100/(t2-t1);
-        if (usage > 100) usage = 100; if (usage < 0) usage = 0;
-        printf "%.1f", usage
-    }')
-    read t_mem u_mem < <(free -m | awk '/Mem:/ {print $2, $3}')
-    MEM_P=$(awk "BEGIN {printf \"%.1f\", ($u_mem/$t_mem)*100}")
-    LOAD=$(cat /proc/loadavg | cut -d' ' -f1-3)
-    UP_SECONDS=$(cat /proc/uptime | awk '{print int($1)}')
+    SGT_TIME=$(TZ="Asia/Singapore" date "+%Y-%m-%d %H:%M:%S")
+    UP_SEC=$(awk '{print int($1)}' /proc/uptime)
+    LOAD_VAL=$(cut -d' ' -f1-3 /proc/loadavg)
+    TCP_CONN=$(ss -ant | grep -c 'ESTAB' || echo 0)
+    DISK_P=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    
+    # IO 计算
+    local io1=$(awk '{print $3,$7,$11}' /proc/diskstats | grep -E '^[v|s]da ' | head -1)
+    sleep 0.1
+    local io2=$(awk '{print $3,$7,$11}' /proc/diskstats | grep -E '^[v|s]da ' | head -1)
+    IO_READ=$(echo "$io1 $io2" | awk '{printf "%.1f", ($5-$2)*512/1024/0.1}')
+    IO_WRITE=$(echo "$io1 $io2" | awk '{printf "%.1f", ($6-$3)*512/1024/0.1}')
+
+    # CPU 采集
+    local s1=$(grep '^cpu ' /proc/stat)
+    sleep 0.1
+    local s2=$(grep '^cpu ' /proc/stat)
+    CPU_USAGE=$(echo "$s1 $s2" | awk '{u=$2+$3+$4; t=u+$5+$6+$7+$8; if(NR==1){u1=u;t1=t}else{usage=(u-u1)*100/(t-t1); printf "%.1f", (usage>0?usage:0)}}')
+    CPU_USAGE=${CPU_USAGE:-0.0}
+    
+    read t_m u_m < <(free -k | awk '/Mem:/ {print $2, $3}')
+    MEM_P=$(awk "BEGIN {printf \"%.1f\", ($u_m/$t_m)*100}")
 }
 
-# --- 3. 渲染主引擎 ---
-clear; get_metrics; COLUMNS=$(tput cols)
+# --- 渲染面板 ---
+clear; get_metrics; COL=$(tput cols)
 
-printf "\n  ${C1}l${C2}k${C3}t${C4}o${C5}p${RES} ${W}SNAPSHOT${RES} ${D}│ UP: $(fmt_time_full $UP_SECONDS)${RES}\n"
-printf "  ${D}CPU  ${W}%5s%%${RES} $(draw_bar $CPU_USAGE)  " "$CPU_USAGE"
-printf "${D}MEM  ${W}%5s%%${RES} $(draw_bar $MEM_P)  " "$MEM_P"
-printf "${D}LOAD: ${Y}${LOAD}${RES}\n"
+# 顶部标题栏
+UP_D=$((UP_SEC/86400)); UP_H=$(((UP_SEC%86400)/3600)); UP_M=$(((UP_SEC%3600)/60))
+UP_STR="${UP_D}d ${UP_H}h ${UP_M}m"
+printf "\n  ${C1}l${C2}k${C3}t${C4}o${C5}p${RES} ${W}v4.7.0${RES}  ${D}│ 运行/Uptime: ${W}%-12s${RES} ${D}│ 新加坡/SGT: ${Y}%s${RES}\n" "$UP_STR" "$SGT_TIME"
 
-# Docker 模块 - Top 9
-if command -v docker >/dev/null 2>&1; then
+# 第一排：CPU 与 内存
+printf "  ${D}CPU      ${W}%5s%%${RES} $(draw_bar $CPU_USAGE)    " "$CPU_USAGE"
+printf "${D}内存/Mem  ${W}%5s%%${RES} $(draw_bar $MEM_P)\n" "$MEM_P"
+
+# 第二排：磁盘与负载 (分层优化)
+printf "  ${D}磁盘/Disk ${W}%5s%%${RES} $(draw_bar $DISK_P)    " "$DISK_P"
+printf "${D}负载/Load ${Y}%s${RES}\n" "$LOAD_VAL"
+
+# 第三排：IO与网络
+printf "  ${D}TCP连接/Conn: ${W}%-6s${RES} ${D}│ Read: ${G}%-8s KB/s${RES} ${D}│ Write: ${R}%-8s KB/s${RES}\n" "$TCP_CONN" "$IO_READ" "$IO_WRITE"
+
+# Docker 板块
+if command -v docker >&/dev/null; then
     D_STATS=$(docker stats --no-stream --format "{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}" 2>/dev/null)
     if [[ -n "$D_STATS" ]]; then
-        printf "\n  ${B}${W}🐳 DOCKER CONTAINERS 容器占用 (Top 9)${RES}\n"
-        printf "  ${D}%-22s %-8s %-18s %-10s${RES}\n" "NAME 名称" "CPU" "MEM 内存" "NET I/O"
+        printf "\n  ${B}${W}🐳 DOCKER 容器/Containers (Top 9)${RES}\n"
+        printf "  ${D}%-22s %-8s %-18s %-15s${RES}\n" "NAME" "CPU" "MEM" "NET I/O"
         echo "$D_STATS" | sort -t'|' -k3 -hr | head -n 9 | while IFS='|' read -r name cpu mem net; do
-            printf "  ${G}%-22.22s${RES} %-8s %-18s %-10s\n" "$name" "$cpu" "$mem" "$net"
+            printf "  ${G}%-22.22s${RES} %-8s %-18s %-15s\n" "$name" "$cpu" "$mem" "$net"
         done
     fi
 fi
 
-# 进程列表 - 调整为 22 个进程
-printf "\n  ${B}${D}%-4s %-9s %-22s %-12s %-10s${RES}\n" "ID" "PID" "PROCESS 进程" "MEM 内存" "STATUS"
-printf "  ${D}$(printf '%.s─' $(seq 1 $((COLUMNS-6))))${RES}\n"
+# 进程面板
+printf "\n  ${B}${D}%-3s %-8s %-25s %-12s %-8s${RES}\n" "ID" "PID" "进程/Process" "内存/Mem" "状态/Status"
+printf "  ${D}$(printf '%.s─' $(seq 1 $((COL-10))))${RES}\n"
 
 idx=1; declare -A pid_map
 while read p cpu rss args; do
     pid_map[$idx]=$p
-    mb=$(awk "BEGIN {printf \"%.1f\", $rss/1024}")
-    cmd_name=$(basename -- "$(echo "$args" | awk '{print $1}')" 2>/dev/null || echo "$args" | cut -d' ' -f1)
+    mem_fmt=$(fmt_mem $rss)
+    cmd=$(basename -- "$(echo "$args" | cut -d' ' -f1)" 2>/dev/null | cut -c1-25)
     
-    s_light="${G}●${RES}"; [[ $(echo "$cpu > 25" | bc -l 2>/dev/null) -eq 1 ]] && s_light="\033[5;31m●${RES}"
+    p_cpu=${cpu%.*}; p_cpu=${p_cpu:-0}
+    c_color=$G; [ "$p_cpu" -gt 20 ] && c_color=$Y; [ "$p_cpu" -gt 50 ] && c_color=$R
     
-    # 颜色设置：前 7 个高亮
-    if [ $idx -le 7 ]; then
-        case $((idx % 5)) in 1) c=$C1 ;; 2) c=$C2 ;; 3) c=$C3 ;; 4) c=$C4 ;; 0) c=$C5 ;; esac
-    else
-        c=$W
-    fi
-    
-    printf "  ${c}%2d${RES}  %-9s ${B}${W}%-22.22s${RES} ${W}%8s MB${RES}   ${s_light} ${D}CPU:${G}%s%%${RES}\n" \
-           "$idx" "$p" "$cmd_name" "$mb" "$cpu"
-    ((idx++))
-done < <(ps -eo pid,pcpu,rss,args --sort=-rss | head -n 23 | tail -n +2)
+    case $((idx % 5)) in 1) c=$C1 ;; 2) c=$C2 ;; 3) c=$C3 ;; 4) c=$C4 ;; 0) c=$C5 ;; esac
+    [ $idx -gt 7 ] && c=$W
 
-printf "  ${D}$(printf '%.s─' $(seq 1 $((COLUMNS-6))))${RES}\n"
-printf "\n  ${B}${W}⚡ 输入 ID 结束进程 / Enter 退出: ${RES}"; read -r tidx
+    printf "  ${c}%2d${RES} ${D}%-8s${RES} ${B}${W}%-25.25s${RES} %10s  ${c_color}●${RES} ${D}%s%%${RES}\n" \
+           "$idx" "$p" "$cmd" "$mem_fmt" "$cpu"
+    ((idx++))
+done < <(ps -eo pid,pcpu,rss,args --sort=-rss | head -n 22 | tail -n +2)
+
+printf "  ${D}$(printf '%.s─' $(seq 1 $((COL-10))))${RES}\n"
+printf "\n  ${B}${W}⚡ 输入 ID 结束进程 (Kill ID) / Enter 退出: ${RES}"; read -r tidx
 if [[ -n "$tidx" && -n "${pid_map[$tidx]}" ]]; then
     kill -9 "${pid_map[$tidx]}" 2>/dev/null && exec "$0"
 fi
