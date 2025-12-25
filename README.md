@@ -1,33 +1,4 @@
-# lktop
-lktop: A stunning, # 🌈 lktop 
-
-> **A stunning, rainbow-themed Linux snapshot monitor that values your privacy.**
-> 一个令人惊艳的、彩虹主题的 Linux 系统快照监控工具，专为隐私和美感设计。
-
----
-
-### ✨ 项目亮点 (Features)
-
-* **🎨 彩虹视觉**：采用 256 色彩虹渐变，指标随负载动态变换颜色。
-* **🔒 隐私保护**：默认隐藏所有 IP 地址（内网/外网），截图分享无需打码。
-* **🚀 极致轻量**：基于 Bash 编写，直接读取 `/proc` 文件系统，不产生常驻进程，零依赖。
-* **📊 深度信息**：一屏掌握 CPU 总占用、内存百分比、负载趋势、进程运行时间及监听端口。
-* **📂 路径精简**：自动提取核心进程名，过滤冗长的路径前缀，排版干净利落。
-
----
-
-### 🚀 快速安装 (Installation)
-
-只需一行命令即可安装并赋予执行权限：
-
-```bash
-curl -L [https://raw.githubusercontent.com/inecekk/lktop/main/lktop](https://raw.githubusercontent.com/inecekk/lktop/main/lktop) -o /usr/local/bin/lktop && chmod +x /usr/local/bin/lktoprainbow-themed Linux snapshot monitor that values your privacy. (一个令人惊艳的、彩虹主题的 Linux 快照监控工具，且珍视你的隐私。)
-
-
-📖 使用方法 (Usage)
-输入命令即可运行：
-
-Bash
-
-lktop
-📸 预览图 (Preview)
+🌈 lktopA stunning, rainbow-themed Linux snapshot monitor that values your privacy.一个令人惊叹的、彩虹主题 Linux 系统快照工具，为隐私与美感而生。📸 预览 (Preview)运行效果：仪表盘随系统负载实时变换色彩✨ 项目亮点 (Features)🎨 彩虹视觉：内置 256 色彩虹渐变算法，监控指标随负载压力动态变换颜色，告别枯燥。🔒 隐私保护：原生隐藏内外网 IP 地址，无需打码即可安全分享系统状态截图。🚀 极致轻量：纯 Bash 编写，直接解析 /proc 文件系统，无常驻进程，零外部依赖。📊 深度信息：一屏掌握 CPU 占用、内存百分比、平均负载、运行时间及实时监听端口。📂 精简排版：智能提取核心进程名，自动过滤冗长路径，在窄屏终端下依然保持优雅对齐。🚀 快速安装 (Installation)在终端执行以下命令即可一键安装并授权：Bashsudo curl -L https://raw.githubusercontent.com/inecekk/lktop/main/lktop -o /usr/local/bin/lktop && sudo chmod +x /usr/local/bin/lktop
+📖 使用方法 (Usage)安装完成后，在任何位置输入以下命令启动快照：Bashlktop
+💡 进阶技巧：为了更快的访问，建议设置命令别名。在你的 ~/.bashrc 或 ~/.zshrc 中添加：Bashalias lk='lktop'
+🛠️ 技术实现 (Tech Stack)维度实现方式内核数据直接读取 /proc/stat, /proc/meminfo, /proc/loadavg网络状态封装 ss -tunlp 实现进程与端口关联视觉渲染ANSI 256-Color Escape Codes 动态映射兼容性适配主流 Linux 发行版 (Ubuntu, Debian, CentOS, Arch 等)⚖️ 开源协议 (License)本项目基于 MIT License 开源。🤝 贡献与反馈欢迎提交 Issue 或 Pull Request 来改进排版逻辑或增加新功能！如果觉得好用，请给个 Star ⭐，这是对开发者最大的支持。
