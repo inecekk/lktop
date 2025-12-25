@@ -22,3 +22,12 @@ lktop: A stunning, # 🌈 lktop
 
 ```bash
 curl -L [https://raw.githubusercontent.com/inecekk/lktop/main/lktop](https://raw.githubusercontent.com/inecekk/lktop/main/lktop) -o /usr/local/bin/lktop && chmod +x /usr/local/bin/lktoprainbow-themed Linux snapshot monitor that values your privacy. (一个令人惊艳的、彩虹主题的 Linux 快照监控工具，且珍视你的隐私。)
+
+
+📖 使用方法 (Usage)
+输入命令即可运行：
+
+Bash
+
+lktop
+📸 预览图 (Preview)
