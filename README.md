@@ -49,7 +49,10 @@ UI 渲染：利用 ANSI Escape Code 实现彩色进度条，无任何外部图�
 ⚠️ 常见说明 (Troubleshooting)CPU 显示为 0.0%：lktop 计算的是 0.2s 内的瞬时占用。如果系统空闲，这是正常现象。乱码问题：请确保您的 SSH 客户端（如 PuTTY, Termius, VSCode, Tabby）支持 256 色显示。
 
 预览图
-<img width="1558" height="1749" alt="捕获" src="https://github.com/user-attachments/assets/fb8af5fa-bcfb-4804-b9db-80bc52030c91" />
+
+<img width="1558" height="1744" alt="捕获" src="https://github.com/user-attachments/assets/fba8cbc6-cd7b-4f53-9440-ecc758df3245" />
+
+
 
 ⚖️ 开源协议 (License)
 本项目遵循 MIT License。
