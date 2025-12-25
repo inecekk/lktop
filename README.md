@@ -14,6 +14,11 @@ sudo curl -L https://raw.githubusercontent.com/inecekk/lktop/main/lktop -o /usr/
 ```Bash
 lktop
 ```
+删除
+```bash
+rm /usr/local/bin/lktop
+```
+
 🛠️ 技术实现 (Tech Stack)维度实现方式优势内核数据直接读取 /proc/stat, /proc/meminfo, /proc/loadavg绕过重型系统调用，毫秒级读取网络状态封装 ss -tunlp 实现进程与端口关联相比 netstat 速度更快，占用更低视觉渲染ANSI 256-Color Escape Codes 动态映射零外部库依赖，支持所有主流终端兼容性适配主流 Linux 发行版 (Ubuntu, Debian, CentOS, Arch 等)极高的环境适应性，支持 x86 与 ARM⚠️ 
 常见说明 (Troubleshooting)CPU 显示为 0.0%：lktop 计算的是 0.2s 内的瞬时占用。如果系统空闲，这是正常现象。乱码问题：请确保您的 SSH 客户端（如 PuTTY, Termius, VSCode, Tabby）支持 256 色显示。
 ⚖️ 开源协议 (License)本项目基于 MIT License 开源。
