@@ -1,60 +1,103 @@
-lktop 
-lktop 是一个极简的 Linux 交互式看板，旨在用最轻量的方式提供仪表盘级的监控体验。它没有 htop 那么复杂，但比 top 更漂亮，且原生支持 Docker 容器监控。
+🚀 lktop: Minimalist Multi-Boot & System Monitor
 
-🛠 为什么开发它？
-在运维 1Panel 或轻量级云服务器时，经常需要同时看系统负载和容器状态。现有的工具要么太重（需安装），要么不支持容器。lktop 通过纯 Bash 解决了以下痛点：
+lktop 是一款专为开发者与运维工程师设计的极简跨平台监控看板。
+它在保持 轻量化（纯脚本、零依赖） 的同时，提供了比 top 更直观、比 htop 更聚焦的交互体验。
+特别针对 NixOS 25.11 + Windows 11 IoT 企业版 LTSC 双系统环境 深度优化。
 
-实时性：直接读取 /proc 接口，比解析命令输出更快。
+🌟 核心优势 / Key Highlights
 
-准确性：自研 CPU 计算逻辑，规避了 Linux 瞬时采样导致的“虚高”现象。
+💎 双系统深度适配
+自动识别 EFI 分区中的 NixOS 引导路径与引导链状态，高亮显示 NixOS 引导链，方便双系统用户确认启动配置。
 
-直观性：引入可视化进度条，一眼定位资源瓶颈。
+🔧 统一指令集
+Linux 和 Windows 均可使用统一指令 lktop 启动监控。
 
-🌟 核心功能
-双维度看板：同时监控物理机指标与容器指标。
+📊 智能数据呈现
 
-Docker 视图：自动抓取 Top 9 活跃容器（CPU/内存/网络）。
+内存占用 >1024 MB 自动切换 GB 单位
 
-进程快照：展示 Top 22 内存进程，支持交互式 Kill。
+高能耗进程自动高亮颜色预警
 
-自适应布局：针对标准终端窗口优化的对齐算法。
+🌐 全球时区同步
+顶部实时显示本地时间和新加坡 (SGT) 时间，方便跨境协作。
 
-时间精度：支持年、月、日、时、分、秒级别的系统运行统计。
+⌨️ 极简交互操作
+列表左侧绿色序号 (1-30) 支持一键结束进程，无需手动输入 PID。
 
-📦 快速安装
+🧪 测试环境 / Testing Environment
+平台	系统版本	终端环境
+Windows	Windows 11 IoT 企业版 LTSC	PowerShell 5.1 / 7+ (管理员)
+Linux	NixOS 25.11	Bash 5.0+, Zsh
 
-🚀 一键安装并运行 (Quick Start)
-复制下方命令到终端，体验安装即运行的快感：
+推荐字体：JetBrains Mono / Cascadia Code
 
-```Bash
-sudo curl -L https://raw.githubusercontent.com/inecekk/lktop/main/lktop -o /usr/local/bin/lktop && sudo chmod +x /usr/local/bin/lktop && lktop
+📦 安装与运行 / Installation & Run
+🐧 Linux (NixOS, Ubuntu, Debian 等)
+
+直接读取内核 /proc 接口，无额外依赖。
+
+# 一键安装并运行
+```bash
+sudo curl -L https://raw.githubusercontent.com/inecekk/lktop/main/lktop -o /usr/local/bin/lktop \
+&& sudo chmod +x /usr/local/bin/lktop \
+&& lktop
 ```
-📖 使用方法 (Usage)安装完成后，在终端任何位置输入以下命令即可启动快照：
-```Bash
+
+安装完成后，在任何终端窗口直接输入 lktop 即可启动。
+
+🪟 Windows (PowerShell - 请以管理员身份运行)
+
+针对 Windows 11 IoT 深度定制，自动处理执行策略，修复 UTF-8 BOM 编码以杜绝乱码。
+
+# 一键部署并运行
+```bash
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+
+$c = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/inecekk/lktop/main/lktop.ps1"
+
+# 将内容写入 UTF-8 BOM 文件，保证控制台显示正常
+[System.IO.File]::WriteAllLines("$env:SystemRoot\System32\lktop.ps1", $c, (New-Object System.Text.UTF8Encoding($true)))
+
+# 启动 lktop
 lktop
 ```
-🗑️ 卸载 (Uninstall)
+
+安装完成后，今后在任何终端窗口直接输入 lktop 即可唤起。
+
+🗑️ 卸载与清理 / Uninstall & Clean
+🐧 Linux
 ```bash
 sudo rm /usr/local/bin/lktop
 ```
+🪟 Windows
+```bash
+Remove-Item "$env:SystemRoot\System32\lktop.ps1" -Force -ErrorAction SilentlyContinue
+```
+🛠 技术细节 / Technical Details
+1️⃣ 引导追踪逻辑 (Boot Tracking)
 
-⚙️ 技术细节
-CPU 算法：采样两次 /proc/stat 的 CPU ticks，通过 (Δuser + Δsystem) / Δtotal 计算真实负载。
+Windows 环境下，解析 bcdedit /enum osloader 自动定位 EFI 分区
 
-内存算法：解析 free 命令输出，实时计算物理内存百分比。
+检测到 NixOS 关键字时，高亮显示引导链，方便双系统用户确认启动配置
 
-UI 渲染：利用 ANSI Escape Code 实现彩色进度条，无任何外部图形库依赖。支持所有主流终端兼容性适配主流 Linux 发行版 (Ubuntu, Debian, CentOS, Arch 等)极高的环境适应性，支持 x86 与 ARM。
+2️⃣ 乱码预防机制
+
+Windows 控制台对普通 UTF-8 支持不稳定
+
+部署脚本生成 UTF-8 with BOM 文件
+
+保证进度条 ■、边框 │、状态点 ● 在中文版 Windows 下正常显示
+
+⌨️ 交互指南 / Controls
+操作	功能
+[Enter]	刷新监控数据 (Refresh)
+[数字序号]	结束进程 (Kill)
+[Ctrl + C]	退出监控 (Exit)
+⚖️ 开源协议 / License
+
+本项目遵循 MIT License
+欢迎 Star ⭐ 或提交 Pull Request！
 
 
-⚠️ 常见说明 (Troubleshooting)CPU 显示为 0.0%：lktop 计算的是 0.2s 内的瞬时占用。如果系统空闲，这是正常现象。乱码问题：请确保您的 SSH 客户端（如 PuTTY, Termius, VSCode, Tabby）支持 256 色显示。
-
-预览图
-
-<img width="1558" height="1744" alt="捕获" src="https://github.com/user-attachments/assets/fba8cbc6-cd7b-4f53-9440-ecc758df3245" />
-
-
-
-⚖️ 开源协议 (License)
-本项目遵循 MIT License。
-
-🤝 贡献与反馈欢迎提交 Issue 或 Pull Request 来改进排版逻辑或增加新功能！如果觉得好用，请给个 Star ⭐，这是对开发者最大的支持。
+预览
+<img width="1565" height="1895" alt="捕获" src="https://github.com/user-attachments/assets/4635a07a-c7c9-4cfb-b3c1-159057085db0" />
