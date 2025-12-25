@@ -2,12 +2,12 @@
 
 lktop 是一款专为开发者与运维工程师设计的极简跨平台监控看板。
 它在保持 轻量化（纯脚本、零依赖） 的同时，提供了比 top 更直观、比 htop 更聚焦的交互体验。
-特别针对 NixOS 25.11 + Windows 11 IoT 企业版 LTSC 双系统环境 深度优化。
+特别针对 linux    + Windows 11 IoT 企业版 LTSC 双系统环境 深度优化。
 
 🌟 核心优势 / Key Highlights
 
 💎 双系统深度适配
-自动识别 EFI 分区中的 NixOS 引导路径与引导链状态，高亮显示 NixOS 引导链，方便双系统用户确认启动配置。
+自动识别 EFI 分区中的 linux 引导路径与引导链状态，高亮显示 linux 引导链，方便双系统用户确认启动配置。
 
 🔧 统一指令集
 Linux 和 Windows 均可使用统一指令 lktop 启动监控。
@@ -27,12 +27,12 @@ Linux 和 Windows 均可使用统一指令 lktop 启动监控。
 🧪 测试环境 / Testing Environment
 平台	系统版本	终端环境
 Windows	Windows 11 IoT 企业版 LTSC	PowerShell 5.1 / 7+ (管理员)
-Linux	NixOS 25.11	Bash 5.0+, Zsh
+Linux	linux   	Bash 5.0+, Zsh
 
 推荐字体：JetBrains Mono / Cascadia Code
 
 📦 安装与运行 / Installation & Run
-🐧 Linux (NixOS, Ubuntu, Debian 等)
+🐧 Linux (linux, Ubuntu, Debian 等)
 
 直接读取内核 /proc 接口，无额外依赖。
 
@@ -78,7 +78,7 @@ Remove-Item "$env:SystemRoot\System32\lktop.ps1" -Force -ErrorAction SilentlyCon
 
 Windows 环境下，解析 bcdedit /enum osloader 自动定位 EFI 分区
 
-检测到 NixOS 关键字时，高亮显示引导链，方便双系统用户确认启动配置
+检测到 linux 关键字时，高亮显示引导链，方便双系统用户确认启动配置
 
 2️⃣ 乱码预防机制
 
