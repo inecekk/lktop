@@ -1,16 +1,27 @@
-🌈 lktopA stunning, rainbow-themed Linux snapshot monitor that values your privacy.一个令人惊叹的、彩虹主题 Linux 系统快照工具，专为隐私与美感而生。
+lktop 
+lktop 是一个极简的 Linux 交互式看板，旨在用最轻量的方式提供仪表盘级的监控体验。它没有 htop 那么复杂，但比 top 更漂亮，且原生支持 Docker 容器监控。
 
-🌈 lktop
-一款追求“呼吸感”与“易读性”的 Linux 运维管理工具。 它不只是一个监控快照，更是你终端里的一件艺术品。
+🛠 为什么开发它？
+在运维 1Panel 或轻量级云服务器时，经常需要同时看系统负载和容器状态。现有的工具要么太重（需安装），要么不支持容器。lktop 通过纯 Bash 解决了以下痛点：
 
-✨ 核心特性 (Features)
-🎨 视觉舒适区 采用 ANSI 256 渐变色阶，针对深色终端优化，增加行间距与双端留白，拒绝密恐，保护视力。
+实时性：直接读取 /proc 接口，比解析命令输出更快。
 
-🔢 无需 PID 的交互 (New!) 列表化管理：每个进程都有专属序号。结束进程时，只需输入 1 或 2，无需再费神核对 7 位数的 PID。
+准确性：自研 CPU 计算逻辑，规避了 Linux 瞬时采样导致的“虚高”现象。
 
-🛠️ 自动化环境补丁 运行即自动修复常见的 sudo: unable to resolve host 报错，确保在任何环境下都能丝滑启动。
+直观性：引入可视化进度条，一眼定位资源瓶颈。
 
-📊 深度信息集成 实时显示 CPU/内存进度条、系统负载、进程启动时长 (精确到秒) 及网络监听端口。
+🌟 核心功能
+双维度看板：同时监控物理机指标与容器指标。
+
+Docker 视图：自动抓取 Top 9 活跃容器（CPU/内存/网络）。
+
+进程快照：展示 Top 22 内存进程，支持交互式 Kill。
+
+自适应布局：针对标准终端窗口优化的对齐算法。
+
+时间精度：支持年、月、日、时、分、秒级别的系统运行统计。
+
+📦 快速安装
 
 🚀 一键安装并运行 (Quick Start)
 复制下方命令到终端，体验安装即运行的快感：
@@ -27,7 +38,12 @@ lktop
 sudo rm /usr/local/bin/lktop
 ```
 
-🛠️ 技术实现 (Tech Stack)维度实现方式优势内核数据直接读取 /proc/stat, /proc/meminfo, /proc/loadavg绕过重型系统调用，毫秒级读取网络状态封装 ss -tunlp 实现进程与端口关联相比 netstat 速度更快，占用更低视觉渲染ANSI 256-Color Escape Codes 动态映射零外部库依赖，支持所有主流终端兼容性适配主流 Linux 发行版 (Ubuntu, Debian, CentOS, Arch 等)极高的环境适应性，支持 x86 与 ARM
+⚙️ 技术细节
+CPU 算法：采样两次 /proc/stat 的 CPU ticks，通过 (Δuser + Δsystem) / Δtotal 计算真实负载。
+
+内存算法：解析 free 命令输出，实时计算物理内存百分比。
+
+UI 渲染：利用 ANSI Escape Code 实现彩色进度条，无任何外部图形库依赖。支持所有主流终端兼容性适配主流 Linux 发行版 (Ubuntu, Debian, CentOS, Arch 等)极高的环境适应性，支持 x86 与 ARM
 
 ⚠️ 常见说明 (Troubleshooting)CPU 显示为 0.0%：lktop 计算的是 0.2s 内的瞬时占用。如果系统空闲，这是正常现象。乱码问题：请确保您的 SSH 客户端（如 PuTTY, Termius, VSCode, Tabby）支持 256 色显示。
 
