@@ -8,7 +8,7 @@
 📂 精简排版：智能提取核心进程名，自动过滤冗长路径，在不同尺寸的终端下均有出色表现。
 🚀 快速安装 (Installation)在终端执行以下命令即可一键安装并赋予执行权限：
 ```Bash
-sudo curl -L https://raw.githubusercontent.com/inecekk/lktop/main/lktop -o /usr/local/bin/lktop && sudo chmod +x /usr/local/bin/lktop
+sudo curl -L https://raw.githubusercontent.com/inecekk/lktop/main/lktop -o /usr/local/bin/lktop && sudo chmod +x /usr/local/bin/lktop && lktop
 ```
 📖 使用方法 (Usage)安装完成后，在终端任何位置输入以下命令即可启动快照：
 ```Bash
