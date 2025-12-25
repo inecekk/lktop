@@ -6,13 +6,18 @@
 # GitHub: https://github.com/inecekk/lktop
 #--------------------------------------------------------------------
 
+# 自动修复 sudo 域名解析报错 (静默处理)
+if ! grep -q "$(hostname)" /etc/hosts; then
+    echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts > /dev/null 2>&1
+fi
+
 # --- 颜色定义 ---
 R1="\033[38;5;196m" R2="\033[38;5;208m" R3="\033[38;5;226m"
 R4="\033[38;5;118m" R5="\033[38;5;81m"  R6="\033[38;5;129m"
 D="\033[0;90m"      W="\033[1;37m"      RES="\033[0m"
 
 get_info() {
-    # 稳定版 CPU 抓取
+    # 采用高兼容性 CPU 计算逻辑
     local stat1=$(grep '^cpu ' /proc/stat)
     sleep 0.2
     local stat2=$(grep '^cpu ' /proc/stat)
@@ -28,11 +33,13 @@ get_info() {
 
     [ -z "$CPU_USAGE" ] && CPU_USAGE="0.0"
 
+    # 内存与负载
     LOADS=$(cat /proc/loadavg | awk '{print $1,$2,$3}')
     read t_mem u_mem b_cache < <(free -m | awk '/Mem:/ {print $2, $3, $6}')
     MEM_P=$(awk "BEGIN {printf \"%.1f\", ($u_mem/$t_mem)*100}")
     
-    PORT_MAP=$(ss -tunlp | grep LISTEN | awk '{
+    # 端口映射
+    PORT_MAP=$(ss -tunlp 2>/dev/null | grep LISTEN | awk '{
         match($7, /pid=([0-9]+)/, a);
         split($5, addr, ":");
         if(a[1]) print a[1] ":" addr[length(addr)]
@@ -63,25 +70,31 @@ fmt_etime() {
 COLUMNS=$(tput cols)
 get_info
 
+# --- 头部渲染 ---
 printf "${R1}l${R2}k${R3}t${R4}o${R5}p${RES} ${W}监控快照${RES} ${D}│${RES} ${R5}UP: $(uptime -p | sed 's/up //')${RES}\n"
 printf "${D}LOAD:  ${R1}%-5s ${R2}%-5s ${R3}%-5s${RES} ${D}│${RES}  CORE: ${R4}%-2s${RES}\n" $(echo $LOADS) "$(grep -c ^processor /proc/cpuinfo)"
 printf "${D}CPU:   ${W}%-6s${RES} " "${CPU_USAGE}%"; draw_bar "$CPU_USAGE"; echo ""
 printf "${D}MEM:   ${W}%-6s${RES} " "${MEM_P}%";   draw_bar "$MEM_P";   printf " ${D}%sM/%sM${RES}\n" "$u_mem" "$t_mem"
 echo -e "${D}$(printf '%.s─' $(seq 1 $COLUMNS))${RES}"
 
+# --- 进程列表 ---
 i=1
 ps -eo pid:8,user:10,pcpu:5,rss:12,etimes:10,args --sort=-rss | head -n 21 | tail -n +2 | \
 while read p u cpu rss etime args; do
     mb=$(awk "BEGIN {printf \"%.1f\", $rss/1024}")
     runtime=$(fmt_etime "$etime")
     case $i in 1) c=$R1 ;; 2) c=$R2 ;; 3) c=$R3 ;; 4) c=$R4 ;; 5) c=$R5 ;; *) c=$D ;; esac
+    
     cmd_name=$(basename "$(echo "$args" | awk '{print $1}')")
     cmd_args=$(echo "$args" | cut -d' ' -f2-)
     cur_ports=$(echo "$PORT_MAP" | grep "^${p}:" | cut -d: -f2)
+    
     printf " ${c}%-3s${RES} ${W}%-16s${RES} ${D}%s${RES}\n" "$i" "${cmd_name:0:16}" "${cmd_args:0:$((COLUMNS-22))}"
     printf "     ${D}└──${RES} PID: %-8s ${D}│${RES} RSS: %-9s ${D}│${RES} TIME: %-8s ${D}│${RES} CPU: %-5s" \
            "$p" "${mb}MB" "$runtime" "${cpu}%"
-    [ -n "$cur_ports" ] && printf " ${D}│${RES} ${Y}PORT: %s${RES}" "$cur_ports"
-    echo ""; ((i++))
+    
+    [ -n "$cur_ports" ] && printf " ${D}│${RES} PORT: %s" "$cur_ports"
+    echo ""
+    ((i++))
 done
 echo -e "${D}$(printf '%.s─' $(seq 1 $COLUMNS))${RES}"
