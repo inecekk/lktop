@@ -1,115 +1,93 @@
 #!/bin/bash
-#--------------------------------------------------------------------
-# Project: lktop | Rainbow Linux Snapshot Monitor & Manager
-# Author:  inecekk
-# GitHub:  https://github.com/inecekk/lktop
-#--------------------------------------------------------------------
+# lktop - Version 4.3.0 (9 Docker + 22 Processes Alignment)
 
-# --- 1. 环境修复 (静默处理) ---
-if ! grep -q "$(hostname)" /etc/hosts; then
-    echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts > /dev/null 2>&1
-fi
+# --- 1. 样式与颜色 ---
+B="\033[1m" D="\033[0;90m" W="\033[1;37m" G="\033[32m" Y="\033[33m" R="\033[31m" RES="\033[0m"
+C1="${B}\033[38;5;196m" C2="${B}\033[38;5;208m" C3="${B}\033[38;5;226m" C4="${B}\033[38;5;118m" C5="${B}\033[38;5;81m"
 
-# --- 2. 颜色与风格 ---
-R1="\033[38;5;196m" R2="\033[38;5;208m" R3="\033[38;5;226m"
-R4="\033[38;5;118m" R5="\033[38;5;81m"  D="\033[0;90m"
-W="\033[1;37m"      Y="\033[38;5;214m"  G="\033[38;5;46m"
-RED="\033[0;31m"    RES="\033[0m"
-
-# --- 3. 核心计算 ---
-get_metrics() {
-    local s1=$(grep '^cpu ' /proc/stat)
-    sleep 0.2
-    local s2=$(grep '^cpu ' /proc/stat)
-    CPU_USAGE=$(awk '{u=$2;n=$3;s=$4;i=$5;io=$6;ir=$7;st=$8;t=u+n+s+i+io+ir+st;print t" "i+io}' <<< "$s1"$'\n'"$s2" | awk 'BEGIN {RS=""} {dt=$3-$1;di=$4-$2; printf "%.1f", (dt>0?100*(dt-di)/dt:0)}')
-    read t_mem u_mem b_cache < <(free -m | awk '/Mem:/ {print $2, $3, $6}')
-    MEM_P=$(awk "BEGIN {printf \"%.1f\", ($u_mem/$t_mem)*100}")
-    LOADS=$(cat /proc/loadavg | awk '{print $1,$2,$3}')
-    PORT_MAP=$(ss -tunlp 2>/dev/null | grep LISTEN | awk '{match($7, /pid=([0-9]+)/, a); split($5, addr, ":"); if(a[1]) print a[1] ":" addr[length(addr)]}' | sort -u | awk -F: '{if(p==$1){s=s","$2}else{if(p)print p":"s;p=$1;s=$2}} END{print p":"s}')
+# --- 2. 核心算法 ---
+fmt_time_full() {
+    local s=${1:-0}
+    local y=$((s/31536000)) mn=$(( (s%31536000)/2592000 )) d=$(( (s%2592000)/86400 ))
+    local h=$(( (s%86400)/3600 )) m=$(( (s%3600)/60 )) sec=$(( s%60 ))
+    local res=""
+    [ $y -gt 0 ] && res+="${y}年"
+    [ $mn -gt 0 ] && res+="${mn}月"
+    [ $d -gt 0 ] && res+="${d}天 "
+    printf "%s%02d:%02d:%02d" "$res" "$h" "$m" "$sec"
 }
 
 draw_bar() {
-    local p=$1 width=$((COLUMNS / 4))
-    local filled=$(awk "BEGIN { p=($p+0); print int(p/100*$width) }")
-    printf "${D}[${RES}"
-    for ((j=0; j<width; j++)); do
-        if [ $j -lt $filled ]; then
-            [ $j -lt $((width/5)) ] && printf "${R1}■" || ([ $j -lt $((width*3/5)) ] && printf "${R3}■" || printf "${R5}■")
-        else printf "${D}·" ; fi
-    done
-    printf "${D}]${RES}"
+    local val=${1%.*}
+    [ $val -gt 100 ] && val=100; [ $val -lt 0 ] && val=0
+    local width=15 color=$G; [ $val -gt 50 ] && color=$Y; [ $val -gt 85 ] && color=$R
+    local filled=$(( val * width / 100 )); local empty=$(( width - filled ))
+    printf "${D}[${RES}${color}%s${D}%s]${RES}" "$(printf '■%.0s' $(seq 1 $filled 2>/dev/null))" "$(printf '·%.0s' $(seq 1 $empty 2>/dev/null))"
 }
 
-fmt_time() {
-    local s=${1:-0}
-    if [ $s -ge 86400 ]; then printf "%dd %dh" $((s/86400)) $((s%86400/3600))
-    elif [ $s -ge 3600 ]; then printf "%dh %dm" $((s/3600)) $((s%3600/60))
-    else printf "%dm %ds" $((s/60)) $((s%60)); fi
+get_metrics() {
+    local stat1=$(grep '^cpu ' /proc/stat)
+    sleep 0.2
+    local stat2=$(grep '^cpu ' /proc/stat)
+    CPU_USAGE=$(echo "$stat1 $stat2" | awk '{
+        for(i=2;i<=11;i++) { t1+=$i; if(i<=4) u1+=$i }
+        for(i=13;i<=22;i++) { t2+=$i; if(i<=15) u2+=$i }
+        usage = (u2-u1)*100/(t2-t1);
+        if (usage > 100) usage = 100; if (usage < 0) usage = 0;
+        printf "%.1f", usage
+    }')
+    read t_mem u_mem < <(free -m | awk '/Mem:/ {print $2, $3}')
+    MEM_P=$(awk "BEGIN {printf \"%.1f\", ($u_mem/$t_mem)*100}")
+    LOAD=$(cat /proc/loadavg | cut -d' ' -f1-3)
+    UP_SECONDS=$(cat /proc/uptime | awk '{print int($1)}')
 }
 
-# --- 4. 界面渲染 ---
-COLUMNS=$(tput cols)
-get_metrics
-clear
+# --- 3. 渲染主引擎 ---
+clear; get_metrics; COLUMNS=$(tput cols)
 
-# 顶部状态栏
-printf "\n ${R1}l${R2}k${R3}t${R4}o${R5}p${RES} ${D}SNAPSHOT${RES} "
-printf "${D}%$((COLUMNS-16))s${RES}\n" "UP: $(uptime -p | sed 's/up //')"
-printf " ${D}CPU  ${W}%5s%%${RES} " "$CPU_USAGE"; draw_bar "$CPU_USAGE"; printf "  ${D}LOAD: ${R2}$LOADS${RES}\n"
-printf " ${D}MEM  ${W}%5s%%${RES} " "$MEM_P";   draw_bar "$MEM_P";   printf "  ${D}${u_mem}MB / ${t_mem}MB${RES}\n"
+printf "\n  ${C1}l${C2}k${C3}t${C4}o${C5}p${RES} ${W}SNAPSHOT${RES} ${D}│ UP: $(fmt_time_full $UP_SECONDS)${RES}\n"
+printf "  ${D}CPU  ${W}%5s%%${RES} $(draw_bar $CPU_USAGE)  " "$CPU_USAGE"
+printf "${D}MEM  ${W}%5s%%${RES} $(draw_bar $MEM_P)  " "$MEM_P"
+printf "${D}LOAD: ${Y}${LOAD}${RES}\n"
 
-# 表头设计 (增加间距与垂直分割线感)
-printf "\n ${D}%-4s %-8s %-18s %-10s %s${RES}\n" " ID" "PID" "PROCESS" "MEMORY" "RESOURCES"
-printf "${D}$(printf '%.s─' $(seq 1 $COLUMNS))${RES}\n"
+# Docker 模块 - Top 9
+if command -v docker >/dev/null 2>&1; then
+    D_STATS=$(docker stats --no-stream --format "{{.Name}}|{{.CPUPerc}}|{{.MemUsage}}|{{.NetIO}}" 2>/dev/null)
+    if [[ -n "$D_STATS" ]]; then
+        printf "\n  ${B}${W}🐳 DOCKER CONTAINERS 容器占用 (Top 9)${RES}\n"
+        printf "  ${D}%-22s %-8s %-18s %-10s${RES}\n" "NAME 名称" "CPU" "MEM 内存" "NET I/O"
+        echo "$D_STATS" | sort -t'|' -k3 -hr | head -n 9 | while IFS='|' read -r name cpu mem net; do
+            printf "  ${G}%-22.22s${RES} %-8s %-18s %-10s\n" "$name" "$cpu" "$mem" "$net"
+        done
+    fi
+fi
 
-# 进程数据映射与展示
-declare -A pid_map
-idx=1
-while read p cpu rss etime args; do
+# 进程列表 - 调整为 22 个进程
+printf "\n  ${B}${D}%-4s %-9s %-22s %-12s %-10s${RES}\n" "ID" "PID" "PROCESS 进程" "MEM 内存" "STATUS"
+printf "  ${D}$(printf '%.s─' $(seq 1 $((COLUMNS-6))))${RES}\n"
+
+idx=1; declare -A pid_map
+while read p cpu rss args; do
     pid_map[$idx]=$p
     mb=$(awk "BEGIN {printf \"%.1f\", $rss/1024}")
-    cmd=$(basename "$(echo "$args" | awk '{print $1}')")
-    ports=$(echo "$PORT_MAP" | grep "^${p}:" | cut -d: -f2)
-    runtime=$(fmt_time "$etime")
+    cmd_name=$(basename -- "$(echo "$args" | awk '{print $1}')" 2>/dev/null || echo "$args" | cut -d' ' -f1)
     
-    # 彩虹色阶映射
-    [ $idx -le 5 ] && case $idx in 1) c=$R1 ;; 2) c=$R2 ;; 3) c=$R3 ;; 4) c=$R4 ;; 5) c=$R5 ;; esac || c=$D
+    s_light="${G}●${RES}"; [[ $(echo "$cpu > 25" | bc -l 2>/dev/null) -eq 1 ]] && s_light="\033[5;31m●${RES}"
     
-    # 主行内容
-    printf " ${c}%2s${RES}  %-8s ${W}%-18s${RES} ${W}%-10s${RES} ${D}CPU:${RES}${G}%-5s${RES}\n" \
-           "$idx" "$p" "${cmd:0:18}" "${mb}MB" "${cpu}%"
-    
-    # 详情行对齐 (使用树状连接符)
-    if [ -n "$ports" ]; then
-        printf "     ${D}└─${RES} ${Y}LISTEN:${RES} %-12s ${D}│${RES} ${D}TIME:${RES} %s\n" "$ports" "$runtime"
+    # 颜色设置：前 7 个高亮
+    if [ $idx -le 7 ]; then
+        case $((idx % 5)) in 1) c=$C1 ;; 2) c=$C2 ;; 3) c=$C3 ;; 4) c=$C4 ;; 0) c=$C5 ;; esac
     else
-        # 截断 Args 防止溢出屏幕
-        arg_limit=$((COLUMNS - 32))
-        printf "     ${D}└─${RES} ${D}TIME:${RES} %-12s ${D}│${RES} ${D}ARGS:${RES} %s\n" "$runtime" "${args:0:$arg_limit}"
+        c=$W
     fi
+    
+    printf "  ${c}%2d${RES}  %-9s ${B}${W}%-22.22s${RES} ${W}%8s MB${RES}   ${s_light} ${D}CPU:${G}%s%%${RES}\n" \
+           "$idx" "$p" "$cmd_name" "$mb" "$cpu"
     ((idx++))
-done < <(ps -eo pid:8,pcpu:5,rss:12,etimes:10,args --sort=-rss | head -n 31 | tail -n +2)
+done < <(ps -eo pid,pcpu,rss,args --sort=-rss | head -n 23 | tail -n +2)
 
-printf "${D}$(printf '%.s─' $(seq 1 $COLUMNS))${RES}\n"
-
-# --- 5. 交互式管理 ---
-printf " ${W}⚡ 输入序号 (#) 结束进程，或直接回车退出: ${RES}"
-read -r target_idx
-
-if [[ -n "$target_idx" && "$target_idx" =~ ^[0-9]+$ ]]; then
-    target_pid=${pid_map[$target_idx]}
-    if [[ -n "$target_pid" ]]; then
-        p_name=$(ps -p "$target_pid" -o comm= 2>/dev/null)
-        printf " ${RED}确认强制结束: [#$target_idx] $p_name (PID: $target_pid) ? (y/n): ${RES}"
-        read -r confirm
-        if [[ "$confirm" =~ ^[yY]$ ]]; then
-            sudo kill -9 "$target_pid" 2>/dev/null && printf " ${G}DONE: 进程已清理。${RES}\n" || printf " ${RED}FAIL: 权限不足。${RES}\n"
-        else
-            printf " ${D}已取消。${RES}\n"
-        fi
-    else
-        printf " ${RED}ERR: 序号超出展示范围。${RES}\n"
-    fi
-else
-    printf " ${D}EXIT.${RES}\n"
+printf "  ${D}$(printf '%.s─' $(seq 1 $((COLUMNS-6))))${RES}\n"
+printf "\n  ${B}${W}⚡ 输入 ID 结束进程 / Enter 退出: ${RES}"; read -r tidx
+if [[ -n "$tidx" && -n "${pid_map[$tidx]}" ]]; then
+    kill -9 "${pid_map[$tidx]}" 2>/dev/null && exec "$0"
 fi
