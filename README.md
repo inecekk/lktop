@@ -99,5 +99,10 @@ Windows 控制台对普通 UTF-8 支持不稳定
 欢迎 Star ⭐ 或提交 Pull Request！
 
 
-预览
+截图
+debian13
+<img width="1595" height="1889" alt="捕获1" src="https://github.com/user-attachments/assets/e71def26-caaa-467b-a568-8eaaacb53809" />
+Windows 11 IoT 企业版 LTSC    
 <img width="1565" height="1895" alt="捕获" src="https://github.com/user-attachments/assets/4635a07a-c7c9-4cfb-b3c1-159057085db0" />
+
+
